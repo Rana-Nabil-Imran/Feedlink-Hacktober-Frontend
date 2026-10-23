@@ -1,0 +1,135 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { useDonations } from '../../hooks/useDonations';
+import { DonationList } from '../../components/donation/DonationList';
+import { StatCard } from '../../components/ui/StatCard';
+import { Button } from '../../components/ui/Button';
+import { Card, CardHeader } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import {
+  ShoppingBag,
+  HandHeart,
+  Truck,
+  CheckCircle,
+  MapPin,
+} from 'lucide-react';
+
+export const NgoDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { donations, isLoading } = useDonations(user?.id, 'ngo');
+
+  const availableDonations = donations.filter((d) =>
+    ['pending', 'analyzing', 'matched'].includes(d.status)
+  );
+  const claimedDonations = donations.filter((d) =>
+    ['claimed', 'pickup_scheduled', 'in_transit'].includes(d.status)
+  );
+  const completedDonations = donations.filter((d) =>
+    ['delivered', 'completed'].includes(d.status)
+  );
+
+  return (
+    <div className="space-y-6"> 
+      {/* Welcome Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome, {user?.name?.split(' ')[0]}
+          </h1>
+          <p className="text-gray-500 mt-1 flex items-center gap-1">
+            <MapPin size={14} />
+            {user?.organization || 'NGO Dashboard'} &middot; Browse and claim food donations
+          </p>
+        </div>
+        <Badge variant="primary" size="md">
+          NGO / Receiver
+        </Badge>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Available Now"
+          value={availableDonations.length}
+          icon={<ShoppingBag size={24} />}
+          subtitle="Ready to claim"
+        />
+        <StatCard
+          title="Claimed"
+          value={claimedDonations.length}
+          icon={<HandHeart size={24} />}
+          subtitle="Awaiting pickup"
+        />
+        <StatCard
+          title="In Transit"
+          value={
+            donations.filter((d) => d.status === 'in_transit').length
+          }
+          icon={<Truck size={24} />}
+          subtitle="On the way"
+        />
+        <StatCard
+          title="Completed"
+          value={completedDonations.length}
+          icon={<CheckCircle size={24} />}
+          subtitle="Delivered"
+        />
+      </div>
+
+      {/* Pickup Reminders */}
+      {claimedDonations.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Truck size={18} className="text-amber-600" />
+            <h3 className="font-semibold text-amber-900">Upcoming Pickups</h3>
+          </div>
+          <p className="text-sm text-amber-700">
+            You have {claimedDonations.length} donation(s) to pick up.
+            Check the details to arrange your pickup schedule.
+          </p>
+        </div>
+      )}
+
+      {/* Available Donations Preview */}
+      <Card>
+        <CardHeader
+          title="Available for Claim"
+          subtitle="Top surplus batches ready for rescue"
+          action={
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/donations')}
+            >
+              Browse All ({availableDonations.length}) &rarr;
+            </Button>
+          }
+        />
+        <DonationList
+          donations={availableDonations.slice(0, 3)}
+          isLoading={isLoading}
+          emptyTitle="No donations available right now"
+          emptyDescription="New food donations from local donors will appear here as soon as they are submitted."
+          emptyAction={
+            <Button variant="secondary" onClick={() => navigate('/donations')}>
+              Open Donations Marketplace
+            </Button>
+          }
+        />
+        {availableDonations.length > 3 && (
+          <div className="pt-4 mt-2 border-t border-gray-100 text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/donations')}
+            >
+              View all {availableDonations.length} available donations on the Donations page &rarr;
+            </Button>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
